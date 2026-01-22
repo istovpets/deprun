@@ -14,6 +14,12 @@ type Group struct {
 
 // AddDep adds a runnable that may resolve a dependency.
 // The dependency is resolved only if ready is called.
+//
+// AddDep is used to add an actor that other actors can depend on.
+// It returns a *Dependency object that can be passed to the `Add` method
+// to create a dependency relationship. The actor added with AddDep must
+// call the ready function to signal that it is ready and that dependent
+// actors can start.
 func (g *Group) AddDep(execute func(ready ReadySignal) error, interrupt func(error), dependsOn ...*Dependency) *Dependency {
 	actor := actor{execute, interrupt, newDependency(), dependsOn}
 	g.actors = append(g.actors, actor)
@@ -27,6 +33,11 @@ func (g *Group) AddDep(execute func(ready ReadySignal) error, interrupt func(err
 //
 // The first actor (function) to return interrupts all running actors.
 // The error is passed to the interrupt functions, and is returned by Run.
+//
+// To create a dependency, pass one or more *Dependency objects to Add.
+// The actor will only start after all of its dependencies have signaled
+// that they are ready. If no dependencies are provided, the actor starts
+// immediately.
 func (g *Group) Add(execute func() error, interrupt func(error), dependsOn ...*Dependency) {
 	g.AddDep(func(ReadySignal) error { return execute() }, interrupt, dependsOn...)
 }
@@ -50,7 +61,7 @@ func (g *Group) Run() error {
 				return // interrupted
 			}
 
-			errors <- a.execute(a.provides.Ready)
+			errors <- a.execute(a.provides.ready)
 		}(a)
 	}
 
@@ -59,7 +70,7 @@ func (g *Group) Run() error {
 
 	// Signal all actors to stop.
 	for _, a := range g.actors {
-		a.provides.Interrupt()
+		a.provides.interrupt()
 		a.interrupt(err)
 	}
 
@@ -86,7 +97,7 @@ func (a *actor) WaitDeps() bool {
 			continue
 		}
 
-		if !d.Wait() {
+		if !d.wait() {
 			interrupted = true
 		}
 	}
