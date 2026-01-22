@@ -1,4 +1,4 @@
-package run_test
+package deprun_test
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 func ExampleGroup_Add_basic() {
-	var g run.Group
+	var g deprun.Group
 	{
 		cancel := make(chan struct{})
 		g.Add(func() error {
@@ -50,7 +50,7 @@ func ExampleGroup_Add_basic() {
 
 func ExampleGroup_Add_context() {
 	ctx, cancel := context.WithCancel(context.Background())
-	var g run.Group
+	var g deprun.Group
 	{
 		ctx, cancel := context.WithCancel(ctx) // note: shadowed
 		g.Add(func() error {
@@ -66,7 +66,7 @@ func ExampleGroup_Add_context() {
 }
 
 func ExampleGroup_Add_listener() {
-	var g run.Group
+	var g deprun.Group
 	{
 		ln, _ := net.Listen("tcp", ":0")
 		g.Add(func() error {
@@ -92,4 +92,39 @@ func ExampleGroup_Add_listener() {
 func runUntilCanceled(ctx context.Context) error {
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+func ExampleGroup_AddDep() {
+	var g deprun.Group
+	var dep *deprun.Dependency
+	{
+		dep = g.AddDep(func(ready deprun.ReadySignal) error {
+			fmt.Println("first actor: running")
+
+			ready()
+
+			time.Sleep(500 * time.Millisecond) // stay alive
+
+			return nil
+		}, func(err error) {
+			fmt.Printf("first actor: interrupted with %v\n", err)
+		})
+	}
+	{
+		g.Add(func() error {
+			// second actor always runs after the first.
+			fmt.Println("second actor: running, will fail")
+
+			return errors.New("a failure")
+		}, func(err error) {
+			fmt.Printf("second actor: interrupted with %v\n", err)
+		}, dep)
+	}
+	fmt.Printf("The group was terminated with: %v\n", g.Run())
+	// Output:
+	// first actor: running
+	// second actor: running, will fail
+	// first actor: interrupted with a failure
+	// second actor: interrupted with a failure
+	// The group was terminated with: a failure
 }

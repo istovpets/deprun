@@ -1,4 +1,4 @@
-package run
+package deprun
 
 import (
 	"context"

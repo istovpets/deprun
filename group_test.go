@@ -1,4 +1,4 @@
-package run_test
+package deprun_test
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestZero(t *testing.T) {
-	var g run.Group
+	var g deprun.Group
 	res := make(chan error)
 	go func() { res <- g.Run() }()
 	select {
@@ -24,7 +24,7 @@ func TestZero(t *testing.T) {
 
 func TestOne(t *testing.T) {
 	myError := errors.New("foobar")
-	var g run.Group
+	var g deprun.Group
 	g.Add(func() error { return myError }, func(error) {})
 	res := make(chan error)
 	go func() { res <- g.Run() }()
@@ -40,7 +40,7 @@ func TestOne(t *testing.T) {
 
 func TestMany(t *testing.T) {
 	interrupt := errors.New("interrupt")
-	var g run.Group
+	var g deprun.Group
 	g.Add(func() error { return interrupt }, func(error) {})
 	cancel := make(chan struct{})
 	g.Add(func() error { <-cancel; return nil }, func(error) { close(cancel) })
