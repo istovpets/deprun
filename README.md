@@ -1,5 +1,9 @@
 # deprun
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/istovpets/deprun.svg)](https://pkg.go.dev/github.com/istovpets/deprun)
+[![Portfolio](https://img.shields.io/badge/author-portfolio-blue)](https://programmer.stovpets.com/)
+
+
 `deprun` is an extension of the excellent [oklog/run](https://github.com/oklog/run) package. It provides a simple mechanism to manage dependencies between actors, ensuring that an actor only starts after one or more other actors have signaled that they are ready.
 
 This is particularly useful in scenarios where you have a component (e.g., a web server, a database connector) that needs to wait for other components (e.g., a configuration loader, a metrics service) to be fully initialized before it can start.
